@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="tr" translate="no">
+<head>
+<meta charset="UTF-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profil Sipariş Formu</title>
+<style>
+*{box-sizing:border-box;font-family:'Segoe UI',Tahoma,sans-serif}
+body{background:#f1f5f9;margin:0;padding:15px;color:#1e293b}
+.container{max-width:820px;margin:0 auto;background:#fff;padding:20px;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,.07)}
+.header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #e67e22;padding-bottom:12px;margin-bottom:15px;flex-wrap:wrap;gap:10px}
+.header h1{margin:0;font-size:20px;color:#0f172a}
+.meta-info{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.meta-field{flex:1;min-width:160px;display:flex;flex-direction:column;gap:4px}
+.meta-field label{font-size:12px;font-weight:bold;color:#475569}
+.meta-field input{padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;width:100%}
+.color-bar{background:#fffaf5;border:1px solid #e67e22;border-radius:6px;padding:10px 12px;margin-bottom:15px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.color-bar label{font-weight:bold;font-size:14px;color:#d35400;white-space:nowrap}
+.color-bar input{flex:1;min-width:180px;padding:7px 10px;border:1px solid #cbd5e1;border-radius:5px;font-size:14px;font-weight:bold}
+table{width:100%;border-collapse:collapse;margin-bottom:15px}
+th,td{border:1px solid #94a3b8;padding:7px 10px;font-size:14px;vertical-align:middle}
+th{background:#f8fafc;font-weight:700;color:#0f172a}
+td.code{width:85px;text-align:center;font-weight:bold;font-size:14px}
+td.name{font-weight:600}
+td.qty{width:100px;text-align:center;padding:5px}
+input[type=number]{width:100%;padding:7px;font-size:16px;font-weight:bold;text-align:center;border:1px solid #cbd5e1;border-radius:5px}
+input[type=number]:focus{border-color:#e67e22;outline:none;background:#fffaf5}
+.print-val{display:none;font-size:16px;font-weight:bold;color:#0f172a}
+.notes-section label{display:block;font-weight:bold;margin-bottom:6px;font-size:14px}
+textarea{width:100%;min-height:95px;padding:10px;border:1px solid #94a3b8;border-radius:6px;font-size:14px;resize:vertical}
+.actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.actions button{flex:1;min-width:130px;padding:12px;font-size:15px;font-weight:bold;border:none;border-radius:6px;cursor:pointer}
+.btn-print{background:#1e293b;color:#fff}
+.btn-share{background:#10b981;color:#fff}
+.btn-clear{background:#ef4444;color:#fff;flex:.5}
+@page{size:A4 portrait;margin:12mm}
+@media print{body{background:#fff;padding:0}.container{box-shadow:none;padding:0;max-width:100%}.actions,.hide-on-print{display:none!important}input[type=number]{display:none!important}.print-val{display:inline-block!important}.meta-field input,.color-bar input,textarea{border:none;background:transparent;padding-left:0;resize:none}th,td{padding:5px 8px;font-size:13px}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>PROFİL SİPARİŞ FORMU</h1>
+<span style="font-weight:bold;color:#e67e22;font-size:18px;">PROCESS ALUMINIUM & PVC</span>
+</div>
+<div class="meta-info">
+<div class="meta-field" id="custField"><label>Müşteri / Firma Adı:</label><input type="text" id="customerName" placeholder="Müşteri adı..."></div>
+<div class="meta-field"><label>Sipariş Tarihi:</label><input type="text" id="orderDate"></div>
+</div>
+<div class="color-bar" id="colorBar"><label>Profil Rengi / RAL Kodu:</label><input type="text" id="colorCode" placeholder="Örn: Eloksal, Antrasit Gri..."></div>
+<table id="profileTable">
+<thead><tr><th>Kod</th><th>Profil Adı</th><th>Adet</th></tr></thead>
+<tbody>
+<tr><td class="code">800</td><td class="name">Isıcam Baza</td><td class="qty"><input type="number" min="0" placeholder="0"><span class="print-val"></span></td></tr>
+<tr><td class="code">801</td><td class="name">Isıcam Düz Kapak Profil</td><td class="qty"><input type="number" min="0" placeholder="0"><span class="print-val"></span></td></tr>
+<tr><td class="code">807</td><td class="name">Açılı Dönüş Menteşe Profili</td><td class="qty"><input type="number" min="0" placeholder="0"><span class="print-val"></span></td></tr>
+<tr><td class="code">808</td><td class="name">Yan Dikme Profili</td><td class="qty"><input type="number" min="0" placeholder="0"><span class="print-val"></span></td></tr>
+<tr><td class="code">809</td><td class="name">Sabit Cam Menteşe Profili</td><td class="qty"><input type="number" min="0" placeholder="0"><span class="print-val"></span></td></tr>
+<tr><td class="code">810</td><td class="name">Sabit Cam Kilit Profili</td><td class="qty"><input type="number" min="0" placeholder="0"><span class="print-val"></span></td></tr>
+<tr><td class="code">811</td><td class="name">Sabit Cam Kilit Karşılığı Profili</td><td class="qty"><input type="number" min="0" placeholder="0"><span class="print-val"></span></td></tr>
+<tr><td class="code">815</td><td class="name">İspanyolet Profili</td><td class="qty"><input type="number" min="0" placeholder="0"><span class="print-val"></span></td></tr>
+<tr><td class="code">819</td><td class="name">Düz Kasa Üstten Fitilli Profil</td><td class="qty"><input type="number" min="0" placeholder="0"><span class="print-val"></span></td></tr>
+<tr><td class="code">820</td><td class="name">Oluklu Kasa Üstten Fitilli Profil</td><td class="qty"><input type="number" min="0" placeholder="0"><span class="print-val"></span></td></tr>
+<tr><td class="code">824</td><td class="name">Sabit Cam İspanyolet Profil</td><td class="qty"><input type="number" min="0" placeholder="0"><span class="print-val"></span></td></tr>
+</tbody>
+</table>
+<div class="notes-section" id="notesSection"><label>Aksesuarlar ve Notlar:</label><textarea id="notes" placeholder="Notlarınızı buraya yazınız..."></textarea></div>
+<div class="actions">
+<button type="button" class="btn-print" onclick="printOrder()">🖨️ Yazdır / PDF</button>
+<button type="button" class="btn-share" onclick="shareOrder()">📤 Siparişi Paylaş</button>
+<button type="button" class="btn-clear" onclick="clearForm()">🗑️ Temizle</button>
+</div>
+</div>
+<script>
+(function(){
+const d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+document.getElementById('orderDate').value=day+'.'+m+'.'+y;
+})();
+function printOrder(){
+try{
+const custField=document.getElementById('custField'),custVal=document.getElementById('customerName').value.trim();
+if(!custVal){custField.classList.add('hide-on-print')}else{custField.classList.remove('hide-on-print')}
+const colorBar=document.getElementById('colorBar'),colorVal=document.getElementById('colorCode').value.trim();
+if(!colorVal){colorBar.classList.add('hide-on-print')}else{colorBar.classList.remove('hide-on-print')}
+const notesSec=document.getElementById('notesSection'),notesVal=document.getElementById('notes').value.trim();
+if(!notesVal){notesSec.classList.add('hide-on-print')}else{notesSec.classList.remove('hide-on-print')}
+const rows=document.querySelectorAll('#profileTable tbody tr');
+let anyFilled=false;
+rows.forEach(r=>{const v=parseInt(r.querySelector('input').value);if(v&&v>0)anyFilled=true});
+rows.forEach(r=>{
+const inp=r.querySelector('input'),span=r.querySelector('.print-val'),v=parseInt(inp.value);
+if(anyFilled&&(!v||v<=0)){r.classList.add('hide-on-print')}
+else{r.classList.remove('hide-on-print');span.innerText=(v&&v>0)?v:''}
+});
+}catch(e){}
+window.print();
+}
+function shareOrder(){
+const c=document.getElementById('customerName').value.trim(),
+clr=document.getElementById('colorCode').value.trim(),
+d=document.getElementById('orderDate').value.trim(),
+n=document.getElementById('notes').value.trim(),
+rows=document.querySelectorAll('#profileTable tbody tr');
+let t='*ISICAMLI CAM BALKON SİPARİŞ LİSTESİ*\n';
+if(c)t+='Müşteri: '+c+'\n';
+if(d)t+='Tarih: '+d+'\n';
+if(clr)t+='*Renk ve Numara:* '+clr+'\n';
+t+='----------------------------\n';
+let h=false;
+rows.forEach(r=>{
+const cd=r.querySelector('.code').innerText,nm=r.querySelector('.name').innerText,q=r.querySelector('input').value;
+if(q&&parseInt(q)>0){t+='• ['+cd+'] '+nm+': *'+q+' Adet*\n';h=true}
+});
+if(!h)t+='(Adet girilmedi)\n';
+if(n)t+='----------------------------\n*Aksesuarlar / Notlar:*\n'+n+'\n';
+if(navigator.share){navigator.share({title:'Profil Sipariş Listesi',text:t}).catch(()=>{})}
+else{
+const intentUrl='intent:#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT='+encodeURIComponent(t)+';end';
+window.location.href=intentUrl;
+}
+}
+function clearForm(){
+if(confirm('Tüm adetleri ve notları temizlemek istediğinize emin misiniz?')){
+document.querySelectorAll('#profileTable input').forEach(i=>i.value='');
+document.querySelectorAll('.hide-on-print').forEach(el=>el.classList.remove('hide-on-print'));
+document.getElementById('notes').value='';
+document.getElementById('customerName').value='';
+document.getElementById('colorCode').value='';
+}}
+</script>
+</body>
+                                                                                                                                                                                    </html>
+                                                                                                                                                                                    
