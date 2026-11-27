@@ -29,10 +29,10 @@ button{width:100%;padding:14px;font-size:16px;font-weight:bold;border:none;borde
 <body>
 <div class="card">
 <h1>🏭 محوّل HTML إلى APK</h1>
-<p class="sub">مصنعك السحابي الخاص — مع دعم الأيقونات المخصصة</p>
+<p class="sub">نسختك الشخصية المصلحة — تحويل حقيقي مع أيقونة مخصصة</p>
 
 <div class="token-box">
-<label>مفتاح الاتصال (GitHub Token - يُحفظ تلقائياً):</label>
+<label>مفتاح الاتصال (GitHub Token):</label>
 <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
 </div>
 
@@ -42,7 +42,7 @@ button{width:100%;padding:14px;font-size:16px;font-weight:bold;border:none;borde
 </div>
 
 <div class="group">
-<label>أو الصق كود HTML هنا مباشرة (اختياري):</label>
+<label>أو الصق كود HTML هنا مباشرة:</label>
 <textarea id="htmlCode" placeholder="<!DOCTYPE html>..."></textarea>
 </div>
 
@@ -56,12 +56,12 @@ button{width:100%;padding:14px;font-size:16px;font-weight:bold;border:none;borde
 
 <div class="group">
 <label>3. اسم التطبيق (App Name):</label>
-<input type="text" id="appName" value="HTML2APK Builder" placeholder="Isicam Siparis">
+<input type="text" id="appName" value="My Smart App" placeholder="Isicam Siparis">
 </div>
 
 <div class="group">
 <label>4. معرف الحزمة (Package ID - إنجليزي صغير بدون مسافات):</label>
-<input type="text" id="pkgId" value="com.app.builder" placeholder="com.app.isicam">
+<input type="text" id="pkgId" value="com.app.smart1" placeholder="com.app.isicam">
 </div>
 
 <button type="button" class="btn-build" id="buildBtn" onclick="startBuild()">🚀 تحويل وبناء APK الآن</button>
@@ -82,7 +82,7 @@ window.onload = () => {
 };
 
 document.getElementById("htmlFile").addEventListener("change", function(e) {
-  const file = e.target.files[0];
+  const file = e.target.files.item(0);
   if (!file) return;
   const reader = new FileReader();
   reader.onload = ev => { document.getElementById("htmlCode").value = ev.target.result; };
@@ -95,7 +95,7 @@ document.getElementById("htmlFile").addEventListener("change", function(e) {
 });
 
 document.getElementById("iconFile").addEventListener("change", function(e) {
-  const file = e.target.files[0];
+  const file = e.target.files.item(0);
   if (!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
@@ -108,7 +108,7 @@ document.getElementById("iconFile").addEventListener("change", function(e) {
       ctx.drawImage(img, 0, 0, 192, 192);
       const dataUrl = canvas.toDataURL("image/png");
       document.getElementById("iconPreview").src = dataUrl;
-      customIconB64 = dataUrl.split(",")[1];
+      customIconB64 = dataUrl.substring(dataUrl.indexOf(",") + 1);
     };
     img.src = ev.target.result;
   };
@@ -173,7 +173,8 @@ async function startBuild() {
   };
 
   try {
-    log("⏳ 1/3 جاري رفع ملف HTML والأيقونة إلى مصنعك السحابي...");
+    const startTime = Date.now() - 5000;
+    log("⏳ 1/4 جاري رفع ملف HTML والأيقونة إلى GitHub...");
     await upsertFile("index.html", utf8ToB64(code), "Update index.html", headers);
 
     if (customIconB64) {
@@ -190,7 +191,7 @@ async function startBuild() {
       }
     }
 
-    log("⚙️ 2/3 جاري تشغيل محرك البناء وتوليد الـ APK...");
+    log("⚙️ 2/4 جاري تشغيل محرك البناء في GitHub Actions...");
     const dispRes = await fetch(`${API}/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`, {
       method: "POST",
       headers,
@@ -199,36 +200,47 @@ async function startBuild() {
         inputs: { app_name: appName, package_id: pkgId }
       })
     });
-    if (!dispRes.ok) throw new Error("فشل تشغيل المصنع — تأكد من صلاحية Token (workflow).");
+    if (!dispRes.ok) throw new Error("فشل تشغيل البناء — تأكد من صلاحية Token (workflow).");
 
-    log("🔨 3/3 المصنع يبني التطبيق الآن (حوالي 45 ثانية)... انتظر قليلاً");
+    log("🔍 3/4 جاري تحديد عملية البناء الجديدة...");
+    let targetRun = null;
+    for (let w = 0; w < 10; w++) {
+      await new Promise(r => setTimeout(r, 3000));
+      const runsRes = await fetch(`${API}/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/runs?per_page=5`, { headers });
+      const runsData = await runsRes.json();
+      targetRun = runsData.workflow_runs.find(r => new Date(r.created_at).getTime() >= startTime);
+      if (targetRun) break;
+    }
+    if (!targetRun) throw new Error("لم يتم العثور على العملية الجديدة، افتح تبويب Actions يدوياً.");
 
-    await new Promise(r => setTimeout(r, 8000));
-    const runsRes = await fetch(`${API}/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/runs?per_page=1`, { headers });
-    const runsData = await runsRes.json();
-    const runId = runsData.workflow_runs[0].id;
-    const runUrl = runsData.workflow_runs[0].html_url;
-
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < 30; i++) {
       await new Promise(r => setTimeout(r, 4000));
-      const checkRes = await fetch(`${API}/repos/${OWNER}/${REPO}/actions/runs/${runId}`, { headers });
+      const checkRes = await fetch(`${API}/repos/${OWNER}/${REPO}/actions/runs/${targetRun.id}`, { headers });
       const checkData = await checkRes.json();
       if (checkData.status === "completed") {
         if (checkData.conclusion === "success") {
-          log("✅ <b>تم بناء التطبيق بنجاح تام!</b><br>اضغط على الزر الأزرق بالأسفل ثم انزل لقسم <b>Artifacts</b> لتحميل ملف الـ APK.");
-          dl.href = runUrl;
-          dl.style.display = "block";
+          const artRes = await fetch(`${API}/repos/${OWNER}/${REPO}/actions/runs/${targetRun.id}/artifacts`, { headers });
+          const artData = await artRes.json();
+          if (artData.artifacts && artData.artifacts.length > 0) {
+            log("✅ <b>تم إنتاج ملف APK الحقيقي بنجاح!</b><br>اضغط على الزر الأزرق بالأسفل ثم انزل لقسم <b>Artifacts</b> لتحميله.");
+            dl.href = targetRun.html_url;
+            dl.style.display = "block";
+          } else {
+            log("❌ اكتمل البناء لكن لم يتم العثور على ملف APK في Artifacts.");
+          }
         } else {
-          log("❌ توقف البناء أثناء التجميع. افتح الرابط للتفاصيل: <a href='" + runUrl + "' target='_blank'>عرض السجل</a>");
+          log("❌ فشل البناء أثناء التجميع. افتح السجل للتفاصيل: <a href='" + targetRun.html_url + "' target='_blank'>عرض الخطأ</a>");
         }
         btn.disabled = false;
         return;
       }
-      log(`🔨 3/3 جاري تجميع ملف APK... (${(i+1)*4 + 8} ثانية)`);
+      log(`🔨 4/4 جاري تجميع ملف APK الحقيقي... (${(i+1)*4 + 6} ثانية)`);
     }
   } catch (err) {
     log("❌ خطأ: " + err.message);
   }
+  btn.disabled = false;
+}
   btn.disabled = false;
 }
 </script>
