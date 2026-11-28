@@ -1,847 +1,241 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl" translate="no">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="google" content="notranslate">
-<title>HTML2APK Builder</title>
-
-<style>
-* {
-  box-sizing: border-box;
-  font-family: 'Segoe UI', Tahoma, sans-serif;
-}
-
-body {
-  background: #f1f5f9;
-  margin: 0;
-  padding: 15px;
-  color: #0f172a;
-}
-
-.card {
-  max-width: 520px;
-  margin: 0 auto;
-  background: white;
-  padding: 20px;
-  border-radius: 14px;
-  box-shadow: 0 4px 20px rgba(0,0,0,.08);
-}
-
-h1 {
-  margin: 0 0 6px;
-  font-size: 21px;
-  text-align: center;
-}
-
-.sub {
-  margin: 0 0 20px;
-  font-size: 13px;
-  color: #64748b;
-  text-align: center;
-}
-
-.group {
-  margin-bottom: 15px;
-}
-
-label {
-  display: block;
-  font-size: 13px;
-  font-weight: bold;
-  margin-bottom: 6px;
-  color: #334155;
-}
-
-input[type=text],
-input[type=password],
-textarea {
-  width: 100%;
-  padding: 11px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 14px;
-  direction: ltr;
-  text-align: left;
-}
-
-input[type=file] {
-  width: 100%;
-  padding: 10px;
-  border: 2px dashed #94a3b8;
-  border-radius: 8px;
-  background: #f8fafc;
-}
-
-textarea {
-  min-height: 110px;
-  font-family: monospace;
-  font-size: 12px;
-}
-
-.icon-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.icon-preview {
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
-  border: 1px solid #cbd5e1;
-  object-fit: cover;
-  background: #10b981;
-}
-
-.token-box {
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-}
-
-button {
-  width: 100%;
-  padding: 14px;
-  font-size: 16px;
-  font-weight: bold;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  margin-top: 6px;
-}
-
-button:disabled {
-  opacity: .6;
-  cursor: not-allowed;
-}
-
-.btn-build {
-  background: #10b981;
-  color: white;
-}
-
-.btn-download {
-  display: none;
-  background: #2563eb;
-  color: white;
-  text-decoration: none;
-  text-align: center;
-  padding: 14px;
-  border-radius: 10px;
-  margin-top: 12px;
-  font-weight: bold;
-}
-
-.status {
-  display: none;
-  margin-top: 15px;
-  padding: 13px;
-  border-radius: 8px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  font-size: 13px;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.progress {
-  display: none;
-  width: 100%;
-  height: 9px;
-  background: #e2e8f0;
-  border-radius: 20px;
-  overflow: hidden;
-  margin-top: 12px;
-}
-
-.progress-bar {
-  height: 100%;
-  width: 0%;
-  background: #10b981;
-  transition: width .4s;
-}
-
-.note {
-  font-size: 11px;
-  color: #64748b;
-  line-height: 1.7;
-  margin-top: 8px;
-}
-</style>
-</head>
-
-<body>
-
-<div class="card">
-
-<h1>🏭 محوّل HTML إلى APK</h1>
-
-<p class="sub">
-مصنعك السحابي لتحويل صفحات HTML إلى تطبيقات Android
-</p>
-
-<div class="token-box">
-
-<label>GitHub Personal Access Token</label>
-
-<input
-type="password"
-id="ghToken"
-placeholder="أدخل GitHub Token"
-autocomplete="off"
->
-
-<p class="note">
-يُستخدم الرمز للاتصال بمستودعك. لا تشارك الرمز مع أي شخص ولا تحفظه في موقع عام غير موثوق.
-</p>
-
-</div>
-
-<div class="group">
-
-<label>1. اختر ملف HTML من هاتفك</label>
-
-<input
-type="file"
-id="htmlFile"
-accept=".html,.htm,text/html"
->
-
-</div>
-
-<div class="group">
-
-<label>أو الصق كود HTML مباشرة</label>
-
-<textarea
-id="htmlCode"
-placeholder="<!DOCTYPE html>..."
-></textarea>
-
-</div>
-
-<div class="group">
-
-<label>2. أيقونة التطبيق (اختياري)</label>
-
-<div class="icon-row">
-
-<img
-id="iconPreview"
-class="icon-preview"
-alt="معاينة الأيقونة"
-src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='15' fill='%2310b981'/%3E%3Ctext x='50' y='60' font-size='30' text-anchor='middle' fill='white'%3EAPK%3C/text%3E%3C/svg%3E"
->
-
-<input
-type="file"
-id="iconFile"
-accept="image/png,image/jpeg,image/webp"
->
-
-</div>
-</div>
-
-<div class="group">
-
-<label>3. اسم التطبيق</label>
-
-<input
-type="text"
-id="appName"
-value="My HTML App"
-placeholder="My Application"
-maxlength="50"
->
-
-</div>
-
-<div class="group">
-
-<label>4. معرف الحزمة Package ID</label>
-
-<input
-type="text"
-id="pkgId"
-value="com.app.html2apk"
-placeholder="com.app.example"
->
-
-<p class="note">
-مثال: com.app.myapplication
-</p>
-
-</div>
-
-<button
-type="button"
-class="btn-build"
-id="buildBtn"
->
-🚀 تحويل وبناء APK الآن
-</button>
-
-<div class="progress" id="progress">
-<div class="progress-bar" id="progressBar"></div>
-</div>
-
-<div class="status" id="statusBox"></div>
-
-<a
-id="downloadLink"
-class="btn-download"
-target="_blank"
-rel="noopener noreferrer"
->
-⬇️ فتح صفحة تحميل APK
-</a>
-
-</div>
-
-<script>
-"use strict";
-
-/* إعدادات المستودع */
-
-const OWNER = "mm0523482-cmyk";
-const REPO = "html-to-apk";
-const WORKFLOW = "build.yml";
-const BRANCH = "main";
-
-const API = "https://api.github.com";
-
-let customIconB64 = null;
-let buildRunning = false;
-
-/* عناصر الصفحة */
-
-const $ = id => document.getElementById(id);
-
-const tokenInput = $("ghToken");
-const htmlFile = $("htmlFile");
-const htmlCode = $("htmlCode");
-const iconFile = $("iconFile");
-const appNameInput = $("appName");
-const pkgInput = $("pkgId");
-const buildBtn = $("buildBtn");
-const statusBox = $("statusBox");
-const downloadLink = $("downloadLink");
-const progress = $("progress");
-const progressBar = $("progressBar");
-
-/* عرض الحالة */
-
-function log(message) {
-  statusBox.style.display = "block";
-  statusBox.textContent = message;
-}
-
-function setProgress(value) {
-  progress.style.display = "block";
-  progressBar.style.width = Math.min(100, Math.max(0, value)) + "%";
-}
-
-/* قراءة ملف HTML */
-
-htmlFile.addEventListener("change", async function() {
-
-  const file = this.files[0];
-
-  if (!file) return;
-
-  if (file.size > 10 * 1024 * 1024) {
-    log("حجم ملف HTML كبير جداً. الحد الأقصى 10 ميجابايت.");
-    return;
-  }
-
-  htmlCode.value = await file.text();
-
-  const name = file.name
-    .replace(/\.[^/.]+$/, "")
-    .replace(/[^a-zA-Z0-9 ]/g, " ")
-    .trim();
-
-  if (name) {
-    appNameInput.value = name;
-
-    pkgInput.value =
-      "com.app." +
-      name.toLowerCase().replace(/[^a-z0-9]/g, "") +
-      Math.floor(10 + Math.random() * 89);
-  }
-
-});
-
-/* قراءة الأيقونة وتحويلها إلى PNG */
-
-iconFile.addEventListener("change", function() {
-
-  const file = this.files[0];
-
-  if (!file) return;
-
-  if (!file.type.startsWith("image/")) {
-    log("الملف المختار ليس صورة.");
-    return;
-  }
-
-  const reader = new FileReader();
-
-  reader.onload = function(event) {
-
-    const img = new Image();
-
-    img.onload = function() {
-
-      const canvas = document.createElement("canvas");
-
-      canvas.width = 512;
-      canvas.height = 512;
-
-      const ctx = canvas.getContext("2d");
-
-      const scale = Math.max(
-        512 / img.width,
-        512 / img.height
-      );
-
-      const width = img.width * scale;
-      const height = img.height * scale;
-
-      ctx.drawImage(
-        img,
-        (512 - width) / 2,
-        (512 - height) / 2,
-        width,
-        height
-      );
-
-      const dataURL = canvas.toDataURL("image/png");
-
-      $("iconPreview").src = dataURL;
-
-      customIconB64 = dataURL.split(",")[1];
-
-    };
-
-    img.onerror = () => log("تعذر قراءة الصورة.");
-
-    img.src = event.target.result;
-
-  };
-
-  reader.readAsDataURL(file);
-
-});
-
-/* ترميز UTF-8 إلى Base64 */
-
-function utf8ToB64(str) {
-
-  const bytes = new TextEncoder().encode(str);
-
-  let binary = "";
-
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-
-  return btoa(binary);
-
-}
-
-/* طلب GitHub API */
-
-async function githubRequest(path, options = {}, token) {
-
-  const response = await fetch(API + path, {
-
-    ...options,
-
-    headers: {
-
-      "Authorization": "Bearer " + token,
-      "Accept": "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      "Content-Type": "application/json",
-
-      ...(options.headers || {})
-
-    }
-
-  });
-
-  if (!response.ok) {
-
-    let detail = "";
-
-    try {
-      const data = await response.json();
-      detail = data.message || "";
-    } catch {}
-
-    throw new Error(
-      "GitHub API Error (" +
-      response.status +
-      "): " +
-      detail
-    );
-
-  }
-
-  if (response.status === 204) return null;
-
-  return response.json();
-
-}
-
-/* رفع ملف أو تحديثه */
-
-async function upsertFile(path, content, message, token) {
-
-  let sha = null;
-
-  const encodedPath = path
-    .split("/")
-    .map(encodeURIComponent)
-    .join("/");
-
-  const getUrl =
-    `/repos/${OWNER}/${REPO}/contents/${encodedPath}`;
-
-  try {
-
-    const existing = await githubRequest(
-      getUrl,
-      { method: "GET" },
-      token
-    );
-
-    sha = existing.sha;
-
-  } catch (error) {
-
-    if (!error.message.includes("(404)")) {
-      throw error;
-    }
-
-  }
-
-  const body = {
-    message,
-    content
-  };
-
-  if (sha) body.sha = sha;
-
-  await githubRequest(
-    getUrl,
-    {
-      method: "PUT",
-      body: JSON.stringify(body)
-    },
-    token
-  );
-
-}
-
-/* حذف الأيقونة القديمة عند عدم اختيار أيقونة جديدة */
-
-async function deleteOldIcon(token) {
-
-  try {
-
-    const existing = await githubRequest(
-      `/repos/${OWNER}/${REPO}/contents/icon.png`,
-      { method: "GET" },
-      token
-    );
-
-    await githubRequest(
-      `/repos/${OWNER}/${REPO}/contents/icon.png`,
-      {
-        method: "DELETE",
-        body: JSON.stringify({
-          message: "Remove old custom icon",
-          sha: existing.sha,
-          branch: BRANCH
-        })
-      },
-      token
-    );
-
-  } catch (error) {
-
-    if (!error.message.includes("(404)")) {
-      throw error;
-    }
-
-  }
-
-}
-
-/* انتظار */
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/* بدء عملية البناء */
-
-async function startBuild() {
-
-  if (buildRunning) return;
-
-  const token = tokenInput.value.trim();
-
-  const code = htmlCode.value;
-
-  const appName =
-    appNameInput.value.trim() || "My HTML App";
-
-  const pkgId = pkgInput.value.trim().toLowerCase();
-
-  if (!token) {
-    alert("أدخل GitHub Token أولاً.");
-    return;
-  }
-
-  if (!code.trim()) {
-    alert("اختر ملف HTML أو الصق الكود.");
-    return;
-  }
-
-  if (code.length > 10 * 1024 * 1024) {
-    alert("حجم كود HTML أكبر من الحد المسموح.");
-    return;
-  }
-
-  if (!/^[a-zA-Z0-9_-]+$/.test(appName)) {
-    if (appName.length > 50) {
-      alert("اسم التطبيق طويل جداً.");
-      return;
-    }
-  }
-
-  if (!/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(pkgId)) {
-    alert("Package ID غير صحيح. مثال: com.app.example");
-    return;
-  }
-
-  buildRunning = true;
-
-  buildBtn.disabled = true;
-  downloadLink.style.display = "none";
-
-  setProgress(5);
-
-  try {
-
-    log("1/5: التحقق من مستودع GitHub...");
-
-    const repository = await githubRequest(
-      `/repos/${OWNER}/${REPO}`,
-      { method: "GET" },
-      token
-    );
-
-    if (repository.archived) {
-      throw new Error("المستودع مؤرشف ولا يمكن تعديله.");
-    }
-
-    setProgress(10);
-
-    log("2/5: رفع ملف HTML...");
-
-    await upsertFile(
-      "index.html",
-      utf8ToB64(code),
-      "Update HTML application",
-      token
-    );
-
-    setProgress(30);
-
-    log("3/5: رفع الأيقونة...");
-
-    if (customIconB64) {
-
-      await upsertFile(
-        "icon.png",
-        customIconB64,
-        "Update application icon",
-        token
-      );
-
-    } else {
-
-      await deleteOldIcon(token);
-
-    }
-
-    setProgress(45);
-
-    log("4/5: تشغيل GitHub Actions...");
-
-    const startedAt = Date.now();
-
-    await githubRequest(
-      `/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          ref: BRANCH,
-          inputs: {
-            app_name: appName,
-            package_id: pkgId
+name: Build Smart HTML APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'App Name'
+        required: true
+        default: 'HTML2APK Builder'
+      package_id:
+        description: 'Package ID (lowercase English only)'
+        required: true
+        default: 'com.app.html2apk'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle 8.5
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.5'
+
+      - name: Generate Android Project Structure
+        run: |
+          mkdir -p app/src/main/java/com/smart/webview
+          mkdir -p app/src/main/assets
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/mipmap-xxxhdpi
+          cp index.html app/src/main/assets/index.html
+
+          if [ -f "icon.png" ]; then
+            cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          else
+            python3 -c "import zlib,struct;w=h=192;raw=b''.join(b'\x00'+b'\x10\xb9\x81\xff'*w for _ in range(h));c=lambda t,d:struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d)&0xffffffff);open('app/src/main/res/mipmap-xxxhdpi/ic_launcher.png','wb').write(b'\x89PNG\r\n\x1a\n'+c(b'IHDR',struct.pack('>IIBBBBB',w,h,8,6,0,0,0))+c(b'IDAT',zlib.compress(raw))+c(b'IEND',b''))"
+          fi
+
+          cat << 'EOF' > settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
           }
-        })
-      },
-      token
-    );
-
-    log("تم إرسال طلب البناء. نبحث عن عملية البناء الجديدة...");
-
-    let run = null;
-
-    /* البحث عن عملية البناء الجديدة */
-
-    for (let i = 0; i < 12; i++) {
-
-      await sleep(5000);
-
-      const data = await githubRequest(
-        `/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/runs?branch=${BRANCH}&event=workflow_dispatch&per_page=20`,
-        { method: "GET" },
-        token
-      );
-
-      run = data.workflow_runs.find(item => {
-
-        return new Date(item.created_at).getTime()
-          >= startedAt - 30000;
-
-      });
-
-      if (run) break;
-
-    }
-
-    if (!run) {
-      throw new Error(
-        "لم يتم العثور على عملية البناء الجديدة. تحقق من إعداد build.yml وصلاحيات Actions."
-      );
-    }
-
-    const runId = run.id;
-
-    const runUrl = run.html_url;
-
-    log("5/5: جاري بناء تطبيق Android...");
-
-    setProgress(55);
-
-    /* متابعة البناء */
-
-    for (let i = 0; i < 120; i++) {
-
-      await sleep(5000);
-
-      const check = await githubRequest(
-        `/repos/${OWNER}/${REPO}/actions/runs/${runId}`,
-        { method: "GET" },
-        token
-      );
-
-      if (check.status === "completed") {
-
-        if (check.conclusion === "success") {
-
-          const artifacts = await githubRequest(
-            `/repos/${OWNER}/${REPO}/actions/runs/${runId}/artifacts`,
-            { method: "GET" },
-            token
-          );
-
-          const apk = artifacts.artifacts.find(item => {
-            return !item.expired &&
-              (item.name.toLowerCase().includes("apk") ||
-               item.name.toLowerCase().includes("release"));
-          });
-
-          if (!apk) {
-            throw new Error(
-              "نجح البناء لكن لم يتم العثور على Artifact باسم APK أو Release. راجع إعدادات build.yml."
-            );
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
           }
+          rootProject.name = "SmartWebViewApp"
+          include ':app'
+          EOF
 
-          log(
-            "✅ اكتمل بناء التطبيق بنجاح!\n" +
-            "اسم التطبيق: " + appName + "\n" +
-            "Package ID: " + pkgId + "\n" +
-            "ملف APK موجود ضمن Artifacts.\n" +
-            "افتح صفحة البناء لتحميله."
-          );
+          cat << 'EOF' > build.gradle
+          plugins {
+              id 'com.android.application' version '8.2.0' apply false
+          }
+          EOF
 
-          downloadLink.href = runUrl;
-          downloadLink.style.display = "block";
+          cat << 'EOF' > app/build.gradle
+          plugins {
+              id 'com.android.application'
+          }
+          android {
+              namespace 'com.smart.webview'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "${{ github.event.inputs.package_id }}"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+          EOF
 
-          setProgress(100);
+          cat << 'EOF' > app/src/main/res/values/strings.xml
+          <resources>
+              <string name="app_name">${{ github.event.inputs.app_name }}</string>
+          </resources>
+          EOF
 
-          return;
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://android.com">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="@string/app_name"
+                  android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar"
+                  android:usesCleartextTraffic="true">
+                  <activity
+                      android:name="com.smart.webview.MainActivity"
+                      android:exported="true"
+                      android:configChanges="orientation|screenSize">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+          cat << 'EOF' > app/src/main/java/com/smart/webview/MainActivity.java
+          package com.smart.webview;
 
-        }
+          import android.app.Activity;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.net.Uri;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.print.PrintAttributes;
+          import android.print.PrintDocumentAdapter;
+          import android.print.PrintManager;
+          import android.webkit.JavascriptInterface;
+          import android.webkit.ValueCallback;
+          import android.webkit.WebChromeClient;
+          import android.webkit.WebResourceRequest;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
 
-        throw new Error(
-          "فشل بناء التطبيق. النتيجة: " +
-          (check.conclusion || "غير معروفة") +
-          "\nافتح سجل GitHub Actions لمعرفة السبب."
-        );
+          public class MainActivity extends Activity {
+              private WebView webView;
+              private ValueCallback<Uri[]> filePathCallback;
+              private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
 
-      }
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  webView = new WebView(this);
+                  setContentView(webView);
+                  WebSettings s = webView.getSettings();
+                  s.setJavaScriptEnabled(true);
+                  s.setDomStorageEnabled(true);
+                  s.setAllowFileAccess(true);
+                  s.setAllowContentAccess(true);
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) s.setForceDark(WebSettings.FORCE_DARK_OFF);
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) s.setAlgorithmicDarkeningAllowed(false);
 
-      const percent = Math.min(
-        95,
-        55 + Math.floor((i / 120) * 40)
-      );
+                  webView.addJavascriptInterface(new AndroidBridge(), "AndroidNative");
+                  webView.setWebChromeClient(new WebChromeClient() {
+                      @Override
+                      public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> fp, FileChooserParams p) {
+                          if (filePathCallback != null) filePathCallback.onReceiveValue(null);
+                          filePathCallback = fp;
+                          try {
+                              startActivityForResult(p.createIntent(), FILE_CHOOSER_REQUEST_CODE);
+                              return true;
+                          } catch (Exception e) {
+                              filePathCallback = null;
+                              return false;
+                          }
+                      }
+                  });
+                  webView.setWebViewClient(new WebViewClient() {
+                      @Override
+                      public void onPageFinished(WebView v, String u) {
+                          v.evaluateJavascript("window.print=function(){AndroidNative.printPage();};if(!navigator.share){navigator.share=function(d){AndroidNative.shareText(d.title||'',d.text||'',d.url||'');return Promise.resolve();};}", null);
+                      }
+                      @Override
+                      public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
+                          String u = r.getUrl().toString();
+                          if (u.startsWith("https://wa.me") || u.startsWith("whatsapp:") || u.startsWith("mailto:") || u.startsWith("tel:")) {
+                              startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u)));
+                              return true;
+                          }
+                          return false;
+                      }
+                  });
+                  webView.loadUrl("file:///android_asset/index.html");
+              }
 
-      setProgress(percent);
+              @Override
+              protected void onActivityResult(int req, int res, Intent data) {
+                  if (req == FILE_CHOOSER_REQUEST_CODE && filePathCallback != null) {
+                      Uri[] r = (res == Activity.RESULT_OK && data != null && data.getDataString() != null) ? new Uri[]{Uri.parse(data.getDataString())} : null;
+                      filePathCallback.onReceiveValue(r);
+                      filePathCallback = null;
+                  } else super.onActivityResult(req, res, data);
+              }
 
-      log(
-        "🔨 جاري بناء APK...\n" +
-        "حالة البناء: " + check.status + "\n" +
-        "النتيجة: " + (check.conclusion || "قيد التنفيذ") +
-        "\nرقم العملية: " + runId
-      );
+              public class AndroidBridge {
+                  @JavascriptInterface
+                  public void printPage() {
+                      runOnUiThread(() -> {
+                          PrintManager pm = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+                          pm.print("Siparis_PDF", webView.createPrintDocumentAdapter("Document"), new PrintAttributes.Builder().build());
+                      });
+                  }
+                  @JavascriptInterface
+                  public void shareText(String t, String x, String u) {
+                      runOnUiThread(() -> {
+                          Intent i = new Intent(Intent.ACTION_SEND);
+                          i.setType("text/plain");
+                          i.putExtra(Intent.EXTRA_SUBJECT, t);
+                          i.putExtra(Intent.EXTRA_TEXT, x + (u.isEmpty() ? "" : "\n" + u));
+                          startActivity(Intent.createChooser(i, "Share"));
+                      });
+                  }
+              }
 
-    }
+              @Override
+              public void onBackPressed() {
+                  if (webView.canGoBack()) webView.goBack();
+                  else super.onBackPressed();
+              }
+          }
+          EOF
 
-    throw new Error(
-      "انتهت مدة الانتظار. يمكنك متابعة عملية البناء من صفحة GitHub Actions."
-    );
+      - name: Build APK with Gradle
+        run: gradle assembleDebug
 
-  } catch (error) {
-
-    log("❌ حدث خطأ:\n" + error.message);
-
-  } finally {
-
-    buildRunning = false;
-    buildBtn.disabled = false;
-
-  }
-
-}
-
-/* ربط الزر */
-
-buildBtn.addEventListener("click", startBuild);
-
-</script>
-
-</body>
-</html>
+      - name: Upload Generated APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.inputs.app_name }}-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
