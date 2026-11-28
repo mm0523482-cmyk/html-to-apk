@@ -7,23 +7,54 @@ on:
         description: 'App Name'
         required: true
         default: 'HTML2APK Builder'
+        type: string
+
       package_id:
-        description: 'Package ID (lowercase English only)'
+        description: 'Package ID (example: com.app.html2apk)'
         required: true
         default: 'com.app.html2apk'
+        type: string
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    env:
+      APP_NAME: ${{ inputs.app_name }}
+      PACKAGE_ID: ${{ inputs.package_id }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Validate inputs and HTML file
+        shell: bash
+        run: |
+          set -e
+
+          if [ ! -f "index.html" ]; then
+            echo "ERROR: index.html was not found in repository root."
+            exit 1
+          fi
+
+          if ! [[ "$PACKAGE_ID" =~ ^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$ ]]; then
+            echo "ERROR: Invalid Package ID."
+            exit 1
+          fi
+
+          if [ -z "$APP_NAME" ]; then
+            echo "ERROR: App name cannot be empty."
+            exit 1
+          fi
+
+          echo "App name: $APP_NAME"
+          echo "Package ID: $PACKAGE_ID"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
 
       - name: Setup Gradle 8.5
         uses: gradle/actions/setup-gradle@v4
@@ -31,20 +62,38 @@ jobs:
           gradle-version: '8.5'
 
       - name: Generate Android Project Structure
+        shell: bash
         run: |
+          set -e
+
           mkdir -p app/src/main/java/com/smart/webview
           mkdir -p app/src/main/assets
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/mipmap-xxxhdpi
+
           cp index.html app/src/main/assets/index.html
 
+          # Generate launcher icon
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
           else
-            python3 -c "import zlib,struct;w=h=192;raw=b''.join(b'\x00'+b'\x10\xb9\x81\xff'*w for _ in range(h));c=lambda t,d:struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d)&0xffffffff);open('app/src/main/res/mipmap-xxxhdpi/ic_launcher.png','wb').write(b'\x89PNG\r\n\x1a\n'+c(b'IHDR',struct.pack('>IIBBBBB',w,h,8,6,0,0,0))+c(b'IDAT',zlib.compress(raw))+c(b'IEND',b''))"
+            python3 -c "
+          import zlib, struct
+          w=h=192
+          raw=b''.join(b'\x00'+b'\x10\xb9\x81\xff'*w for _ in range(h))
+          def chunk(t,d):
+              return struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d)&0xffffffff)
+          png=b'\x89PNG\r\n\x1a\n'
+          png+=chunk(b'IHDR',struct.pack('>IIBBBBB',w,h,8,6,0,0,0))
+          png+=chunk(b'IDAT',zlib.compress(raw))
+          png+=chunk(b'IEND',b'')
+          open('app/src/main/res/mipmap-xxxhdpi/ic_launcher.png','wb').write(png)
+          "
+
           fi
 
-          cat << 'EOF' > settings.gradle
+          # settings.gradle
+          cat <<'EOF' > settings.gradle
           pluginManagement {
               repositories {
                   google()
@@ -52,6 +101,7 @@ jobs:
                   gradlePluginPortal()
               }
           }
+
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
               repositories {
@@ -59,35 +109,42 @@ jobs:
                   mavenCentral()
               }
           }
+
           rootProject.name = "SmartWebViewApp"
           include ':app'
           EOF
 
-          cat << 'EOF' > build.gradle
+          # Root build.gradle
+          cat <<'EOF' > build.gradle
           plugins {
               id 'com.android.application' version '8.2.0' apply false
           }
           EOF
 
-          cat << 'EOF' > app/build.gradle
+          # App build.gradle
+          cat <<EOF > app/build.gradle
           plugins {
               id 'com.android.application'
           }
+
           android {
               namespace 'com.smart.webview'
               compileSdk 34
+
               defaultConfig {
-                  applicationId "${{ github.event.inputs.package_id }}"
+                  applicationId "$PACKAGE_ID"
                   minSdk 21
                   targetSdk 34
                   versionCode 1
                   versionName "1.0"
               }
+
               buildTypes {
                   release {
                       minifyEnabled false
                   }
               }
+
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
                   targetCompatibility JavaVersion.VERSION_17
@@ -95,14 +152,49 @@ jobs:
           }
           EOF
 
-          cat << 'EOF' > app/src/main/res/values/strings.xml
-          <resources>
-              <string name="app_name">${{ github.event.inputs.app_name }}</string>
-          </resources>
+          # Safely generate app name XML
+          python3 -c "
+          import os
+          from xml.sax.saxutils import escape
+          name = escape(os.environ['APP_NAME'])
+          with open('app/src/main/res/values/strings.xml','w') as f:
+              f.write('<resources>\\n')
+              f.write('    <string name=\"app_name\">'+name+'</string>\\n')
+              f.write('</resources>\\n')
+          "
+
+          # Android Manifest
+          cat <<'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <uses-permission android:name="android.permission.INTERNET" />
+
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="@string/app_name"
+                  android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar"
+                  android:usesCleartextTraffic="false">
+
+                  <activity
+                      android:name="com.smart.webview.MainActivity"
+                      android:exported="true"
+                      android:configChanges="orientation|screenSize">
+
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+
+                  </activity>
+
+              </application>
+          </manifest>
           EOF
 
-          echo "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPG1hbmlmZXN0IHhtbG5zOmFuZHJvaWQ9Imh0dHA6Ly9zY2hlbWFzLmFuZHJvaWQuY29tL2Fway9yZXMvYW5kcm9pZCI+CiAgICA8dXNlcy1wZXJtaXNzaW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5wZXJtaXNzaW9uLklOVEVSTkVUIiAvPgogICAgPGFwcGxpY2F0aW9uCiAgICAgICAgYW5kcm9pZDphbGxvd0JhY2t1cD0idHJ1ZSIKICAgICAgICBhbmRyb2lkOmljb249IkBtaXBtYXAvaWNfbGF1bmNoZXIiCiAgICAgICAgYW5kcm9pZDpsYWJlbD0iQHN0cmluZy9hcHBfbmFtZSIKICAgICAgICBhbmRyb2lkOnRoZW1lPSJAYW5kcm9pZDpzdHlsZS9UaGVtZS5EZXZpY2VEZWZhdWx0LkxpZ2h0Lk5vQWN0aW9uQmFyIgogICAgICAgIGFuZHJvaWQ6dXNlc0NsZWFydGV4dFRyYWZmaWM9InRydWUiPgogICAgICAgIDxhY3Rpdml0eQogICAgICAgICAgICBhbmRyb2lkOm5hbWU9ImNvbS5zbWFydC53ZWJ2aWV3Lk1haW5BY3Rpdml0eSIKICAgICAgICAgICAgYW5kcm9pZDpleHBvcnRlZD0idHJ1ZSIKICAgICAgICAgICAgYW5kcm9pZDpjb25maWdDaGFuZ2VzPSJvcmllbnRhdGlvbnxzY3JlZW5TaXplIj4KICAgICAgICAgICAgPGludGVudC1maWx0ZXI+CiAgICAgICAgICAgICAgICA8YWN0aW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5pbnRlbnQuYWN0aW9uLk1BSU4iIC8+CiAgICAgICAgICAgICAgICA8Y2F0ZWdvcnkgYW5kcm9pZDpuYW1lPSJhbmRyb2lkLmludGVudC5jYXRlZ29yeS5MQVVOQ0hFUiIgLz4KICAgICAgICAgICAgPC9pbnRlbnQtZmlsdGVyPgogICAgICAgIDwvYWN0aXZpdHk+CiAgICA8L2FwcGxpY2F0aW9uPgo8L21hbmlmZXN0Pg==" | base64 -d > app/src/main/AndroidManifest.xml
-          cat << 'EOF' > app/src/main/java/com/smart/webview/MainActivity.java
+          # MainActivity.java
+                    cat <<'EOF' > app/src/main/java/com/smart/webview/MainActivity.java
           package com.smart.webview;
 
           import android.app.Activity;
@@ -112,7 +204,6 @@ jobs:
           import android.os.Build;
           import android.os.Bundle;
           import android.print.PrintAttributes;
-          import android.print.PrintDocumentAdapter;
           import android.print.PrintManager;
           import android.webkit.JavascriptInterface;
           import android.webkit.ValueCallback;
@@ -121,100 +212,338 @@ jobs:
           import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
+          import android.widget.Toast;
 
           public class MainActivity extends Activity {
+
               private WebView webView;
+
               private ValueCallback<Uri[]> filePathCallback;
+
               private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  webView = new WebView(this);
-                  setContentView(webView);
-                  WebSettings s = webView.getSettings();
-                  s.setJavaScriptEnabled(true);
-                  s.setDomStorageEnabled(true);
-                  s.setAllowFileAccess(true);
-                  s.setAllowContentAccess(true);
-                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) s.setForceDark(WebSettings.FORCE_DARK_OFF);
-                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) s.setAlgorithmicDarkeningAllowed(false);
 
-                  webView.addJavascriptInterface(new AndroidBridge(), "AndroidNative");
+                  webView = new WebView(this);
+
+                  setContentView(webView);
+
+                  WebSettings settings = webView.getSettings();
+
+                  settings.setJavaScriptEnabled(true);
+                  settings.setDomStorageEnabled(true);
+                  settings.setAllowFileAccess(true);
+                  settings.setAllowContentAccess(true);
+
+                  settings.setAllowFileAccessFromFileURLs(false);
+                  settings.setAllowUniversalAccessFromFileURLs(false);
+
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                      settings.setForceDark(WebSettings.FORCE_DARK_OFF);
+                  }
+
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                      settings.setAlgorithmicDarkeningAllowed(false);
+                  }
+
+                  webView.addJavascriptInterface(
+                      new AndroidBridge(),
+                      "AndroidNative"
+                  );
+
                   webView.setWebChromeClient(new WebChromeClient() {
+
                       @Override
-                      public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> fp, FileChooserParams p) {
-                          if (filePathCallback != null) filePathCallback.onReceiveValue(null);
-                          filePathCallback = fp;
+                      public boolean onShowFileChooser(
+                          WebView view,
+                          ValueCallback<Uri[]> callback,
+                          FileChooserParams params
+                      ) {
+
+                          if (filePathCallback != null) {
+                              filePathCallback.onReceiveValue(null);
+                          }
+
+                          filePathCallback = callback;
+
                           try {
-                              startActivityForResult(p.createIntent(), FILE_CHOOSER_REQUEST_CODE);
+                              Intent intent = params.createIntent();
+
+                              startActivityForResult(
+                                  intent,
+                                  FILE_CHOOSER_REQUEST_CODE
+                              );
+
                               return true;
+
                           } catch (Exception e) {
+
                               filePathCallback = null;
+
+                              Toast.makeText(
+                                  MainActivity.this,
+                                  "Cannot open file chooser",
+                                  Toast.LENGTH_SHORT
+                              ).show();
+
                               return false;
                           }
                       }
                   });
+
                   webView.setWebViewClient(new WebViewClient() {
+
                       @Override
-                      public void onPageFinished(WebView v, String u) {
-                          v.evaluateJavascript("window.print=function(){AndroidNative.printPage();};if(!navigator.share){navigator.share=function(d){AndroidNative.shareText(d.title||'',d.text||'',d.url||'');return Promise.resolve();};}", null);
+                      public void onPageFinished(
+                          WebView view,
+                          String url
+                      ) {
+
+                          super.onPageFinished(view, url);
+
+                          String script =
+                              "window.print = function() {" +
+                              "AndroidNative.printPage();" +
+                              "};" +
+
+                              "if (!navigator.share) {" +
+                              "navigator.share = function(data) {" +
+                              "AndroidNative.shareText(" +
+                              "data.title || ''," +
+                              "data.text || ''," +
+                              "data.url || ''" +
+                              ");" +
+                              "return Promise.resolve();" +
+                              "};" +
+                              "}";
+
+                          view.evaluateJavascript(script, null);
                       }
+
                       @Override
-                      public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
-                          String u = r.getUrl().toString();
-                          if (u.startsWith("https://wa.me") || u.startsWith("whatsapp:") || u.startsWith("mailto:") || u.startsWith("tel:")) {
-                              startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(u)));
-                              return true;
+                      public boolean shouldOverrideUrlLoading(
+                          WebView view,
+                          WebResourceRequest request
+                      ) {
+
+                          String url = request.getUrl().toString();
+
+                          if (url.startsWith("file:///android_asset/")) {
+                              return false;
                           }
-                          return false;
+
+                          openExternalLink(url);
+
+                          return true;
+                      }
+
+                      @Override
+                      public boolean shouldOverrideUrlLoading(
+                          WebView view,
+                          String url
+                      ) {
+
+                          if (url.startsWith("file:///android_asset/")) {
+                              return false;
+                          }
+
+                          openExternalLink(url);
+
+                          return true;
                       }
                   });
+
                   webView.loadUrl("file:///android_asset/index.html");
               }
 
+              private void openExternalLink(String url) {
+
+                  try {
+
+                      Intent intent = new Intent(
+                          Intent.ACTION_VIEW,
+                          Uri.parse(url)
+                      );
+
+                      startActivity(intent);
+
+                  } catch (Exception e) {
+
+                      Toast.makeText(
+                          this,
+                          "Cannot open this link",
+                          Toast.LENGTH_SHORT
+                      ).show();
+                  }
+              }
+
               @Override
-              protected void onActivityResult(int req, int res, Intent data) {
-                  if (req == FILE_CHOOSER_REQUEST_CODE && filePathCallback != null) {
-                      Uri[] r = (res == Activity.RESULT_OK && data != null && data.getDataString() != null) ? new Uri[]{Uri.parse(data.getDataString())} : null;
-                      filePathCallback.onReceiveValue(r);
+              protected void onActivityResult(
+                  int requestCode,
+                  int resultCode,
+                  Intent data
+              ) {
+
+                  super.onActivityResult(
+                      requestCode,
+                      resultCode,
+                      data
+                  );
+
+                  if (requestCode == FILE_CHOOSER_REQUEST_CODE
+                      && filePathCallback != null) {
+
+                      Uri[] results = null;
+
+                      if (resultCode == Activity.RESULT_OK && data != null) {
+
+                          if (data.getClipData() != null) {
+
+                              int count = data.getClipData().getItemCount();
+
+                              results = new Uri[count];
+
+                              for (int i = 0; i < count; i++) {
+                                  results[i] = data.getClipData()
+                                      .getItemAt(i).getUri();
+                              }
+
+                          } else if (data.getData() != null) {
+
+                              results = new Uri[]{
+                                  data.getData()
+                              };
+                          }
+                      }
+
+                      filePathCallback.onReceiveValue(results);
+
                       filePathCallback = null;
-                  } else super.onActivityResult(req, res, data);
+                  }
               }
 
               public class AndroidBridge {
+
                   @JavascriptInterface
                   public void printPage() {
+
                       runOnUiThread(() -> {
-                          PrintManager pm = (PrintManager) getSystemService(Context.PRINT_SERVICE);
-                          pm.print("Siparis_PDF", webView.createPrintDocumentAdapter("Document"), new PrintAttributes.Builder().build());
+
+                          try {
+
+                              PrintManager printManager =
+                                  (PrintManager) getSystemService(
+                                      Context.PRINT_SERVICE
+                                  );
+
+                              printManager.print(
+                                  "HTML_Document",
+                                  webView.createPrintDocumentAdapter(
+                                      "HTML_Document"
+                                  ),
+                                  new PrintAttributes.Builder().build()
+                              );
+
+                          } catch (Exception e) {
+
+                              Toast.makeText(
+                                  MainActivity.this,
+                                  "Printing failed",
+                                  Toast.LENGTH_SHORT
+                              ).show();
+                          }
                       });
                   }
+
                   @JavascriptInterface
-                  public void shareText(String t, String x, String u) {
+                  public void shareText(
+                      String title,
+                      String text,
+                      String url
+                  ) {
+
                       runOnUiThread(() -> {
-                          Intent i = new Intent(Intent.ACTION_SEND);
-                          i.setType("text/plain");
-                          i.putExtra(Intent.EXTRA_SUBJECT, t);
-                          i.putExtra(Intent.EXTRA_TEXT, x + (u.isEmpty() ? "" : "\n" + u));
-                          startActivity(Intent.createChooser(i, "Share"));
+
+                          try {
+
+                              Intent intent = new Intent(
+                                  Intent.ACTION_SEND
+                              );
+
+                              intent.setType("text/plain");
+
+                              intent.putExtra(
+                                  Intent.EXTRA_SUBJECT,
+                                  title
+                              );
+
+                              intent.putExtra(
+                                  Intent.EXTRA_TEXT,
+                                  text + (
+                                      url.isEmpty()
+                                      ? ""
+                                      : "\n" + url
+                                  )
+                              );
+
+                              startActivity(
+                                  Intent.createChooser(
+                                      intent,
+                                      "Share"
+                                  )
+                              );
+
+                          } catch (Exception e) {
+
+                              Toast.makeText(
+                                  MainActivity.this,
+                                  "Sharing failed",
+                                  Toast.LENGTH_SHORT
+                              ).show();
+                          }
                       });
                   }
               }
 
               @Override
               public void onBackPressed() {
-                  if (webView.canGoBack()) webView.goBack();
-                  else super.onBackPressed();
+
+                  if (webView != null && webView.canGoBack()) {
+
+                      webView.goBack();
+
+                  } else {
+
+                      super.onBackPressed();
+                  }
+              }
+
+              @Override
+              protected void onDestroy() {
+
+                  if (filePathCallback != null) {
+                      filePathCallback.onReceiveValue(null);
+                      filePathCallback = null;
+                  }
+
+                  if (webView != null) {
+                      webView.destroy();
+                      webView = null;
+                  }
+
+                  super.onDestroy();
               }
           }
           EOF
 
       - name: Build APK with Gradle
-        run: gradle assembleDebug
+        run: gradle assembleDebug --stacktrace
 
       - name: Upload Generated APK
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name }}-APK
+          name: ${{ inputs.app_name }}-APK
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
